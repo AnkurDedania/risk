@@ -1,0 +1,8 @@
+discord.py
+trueskill
+ruamel.yaml
+click
+peewee
+peewee-async
+aiomysql
+toolz
