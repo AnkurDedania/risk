@@ -54,18 +54,26 @@ class CommandHelper:
     async def get_active_lobby(self) -> MatchLobby:
         return await self.database.get_or_none(MatchLobby, MatchLobby.closed.is_null())
 
-    async def get_active_lobby_format(self, lobby=None) -> MatchFormat:
+    async def get_active_lobby_format(self, lobby: MatchLobby=None) -> MatchFormat:
         if not lobby:
             lobby = await self.get_active_lobby()
         return await self.database.get(MatchFormat, id=lobby.format_id)
 
-    async def get_active_lobby_players(self, lobby=None) -> List[MatchLobbyPlayer]:
+    async def get_active_lobby_players(self, lobby: MatchLobby=None) -> List[MatchLobbyPlayer]:
         if not lobby:
             lobby = await self.get_active_lobby()
         results = await self.database.execute(MatchLobbyPlayer.select().where(
             MatchLobbyPlayer.lobby == lobby
         ))
         return list(results)
+
+    async def get_score(self, user: User, match_format: MatchFormat):
+        score = await self.database.get_or_none(
+            Score, Score.player == user and Score.format == match_format
+        )
+        if not score:
+            score = await self.database.create(Score, player=user, format=match_format)
+        return score
 
 
 class Command(CommandHelper):
@@ -101,12 +109,16 @@ class Command(CommandHelper):
             if len(command) == 2:
                 match_format = await self.database.get_or_none(MatchFormat, id=command[1])
                 if match_format:
-                    user = await self.register_user(message.author)
                     async with self.database.atomic():
+                        user = await self.register_user(message.author)
+                        score = await self.get_score(user, match_format)
                         lobby = await self.database.create(MatchLobby, creator=user, format=match_format)
-                        await self.database.create(MatchLobbyPlayer, lobby=lobby, player=user)
+                        await self.database.create(
+                            MatchLobbyPlayer,
+                            lobby=lobby, player=user, mu=score.mu, sigma=score.sigma, games=score.games
+                        )
                     await message.channel.send(
-                        f"<@{user}> has created a {match_format} lobby, type `!join` to queue up")
+                        f"<@{message.author}> has created a {match_format} lobby, type `!join` to queue up")
                 else:
                     await self.send_invalid_match(message)
             else:
@@ -147,7 +159,11 @@ class Command(CommandHelper):
                 else:
                     lobby.updated = datetime.utcnow()
                     async with self.database.atomic():
-                        await self.database.create(MatchLobbyPlayer, lobby=lobby, player=user)
+                        score = await self.get_score(user, match_format)
+                        await self.database.create(
+                            MatchLobbyPlayer,
+                            lobby=lobby, player=user, mu=score.mu, sigma=score.sigma, games=score.games
+                        )
                         await self.database.update(lobby)
                     if len(match_players) + 1 >= match_format.min_player:
                         await message.channel.send(

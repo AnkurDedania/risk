@@ -62,6 +62,9 @@ class MatchLobby(Model):
 class MatchLobbyPlayer(Model):
     lobby = ForeignKeyField(MatchLobby)
     player = ForeignKeyField(User)
+    mu = DoubleField(default=25)
+    sigma = DoubleField(default=25/3)
+    games = IntegerField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
 
@@ -88,6 +91,9 @@ class MatchPlayer(Model):
     match_id = ForeignKeyField(Match)
     team = IntegerField()
     player = ForeignKeyField(User)
+    mu = DoubleField(default=25)
+    sigma = DoubleField(default=25/3)
+    games = IntegerField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
 
@@ -100,10 +106,16 @@ class Score(Model):
     player = ForeignKeyField(User)
     season = IntegerField()
     format = ForeignKeyField(MatchFormat)
-    mu = DoubleField()
-    sigma = DoubleField()
+    mu = DoubleField(default=25)
+    sigma = DoubleField(default=25/3)
+    win = IntegerField(default=0)
+    lose = IntegerField(default=0)
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
+
+    @property
+    def games(self):
+        return self.win + self.lose
 
     def save(self, *args, **kwargs):
         self.updated = datetime.datetime.utcnow()
