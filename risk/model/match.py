@@ -7,10 +7,6 @@ from random import randint
 from risk.model.database import *
 
 
-MU = 25
-SIGMA = 25/3
-
-
 class Player(NamedTuple):
     id: str
     mu: float

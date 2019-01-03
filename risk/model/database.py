@@ -9,6 +9,10 @@ __all__ = [
 ]
 
 
+MU = 25
+SIGMA = 25/3
+
+
 class User(Model):
     id = CharField(primary_key=True)
     name = CharField()
@@ -62,8 +66,8 @@ class MatchLobby(Model):
 class MatchLobbyPlayer(Model):
     lobby = ForeignKeyField(MatchLobby)
     player = ForeignKeyField(User)
-    mu = DoubleField(default=25)
-    sigma = DoubleField(default=25/3)
+    mu = DoubleField(default=MU)
+    sigma = DoubleField(default=SIGMA)
     games = IntegerField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
@@ -91,8 +95,8 @@ class MatchPlayer(Model):
     match_id = ForeignKeyField(Match)
     team = IntegerField()
     player = ForeignKeyField(User)
-    mu = DoubleField(default=25)
-    sigma = DoubleField(default=25/3)
+    mu = DoubleField(default=MU)
+    sigma = DoubleField(default=SIGMA)
     games = IntegerField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
@@ -106,8 +110,8 @@ class Score(Model):
     player = ForeignKeyField(User)
     season = IntegerField()
     format = ForeignKeyField(MatchFormat)
-    mu = DoubleField(default=25)
-    sigma = DoubleField(default=25/3)
+    mu = DoubleField(default=MU)
+    sigma = DoubleField(default=SIGMA)
     win = IntegerField(default=0)
     lose = IntegerField(default=0)
     created = DateTimeField(default=datetime.datetime.utcnow)
