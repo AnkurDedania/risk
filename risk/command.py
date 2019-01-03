@@ -4,7 +4,7 @@ try:
 except ImportError:
     import toolz
 
-from risk.db import *
+from risk.model.database import *
 from risk.util import Manager
 
 from datetime import datetime

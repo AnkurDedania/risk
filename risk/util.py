@@ -3,7 +3,7 @@ import peewee_async
 
 from ruamel.yaml import YAML
 
-from risk.db.model import *
+from risk.model.database import *
 
 
 def load_config(file):

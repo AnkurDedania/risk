@@ -1,7 +1,7 @@
 import click
 
 from risk.util import load_config, load_db, load_async_db
-from risk.db import *
+from risk.model.database import *
 
 
 @click.group()

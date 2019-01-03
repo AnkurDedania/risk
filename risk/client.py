@@ -1,6 +1,6 @@
 import discord
 
-from risk.db import *
+from risk.model.database import *
 from risk.command import Command
 from risk.util import Manager
 
