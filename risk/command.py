@@ -140,7 +140,7 @@ class Command(CommandHelper):
             match_players = await self.get_active_lobby_players(lobby)
             user = await self.register_user(message.author)
             if len(match_players) >= match_format.max_player:
-                await message.channel.send(f"lobby is currently full, <@{lobby.creator_id}> `!confirm`")
+                await message.channel.send(f"lobby is currently full, <@{lobby.creator_id}> `!start`")
             elif not user.disabled:
                 if toolz.count(filter(lambda x: x.player_id == user.id, match_players)):
                     await message.channel.send(f"you are already signed up for the current lobby")
@@ -152,7 +152,7 @@ class Command(CommandHelper):
                     if len(match_players) + 1 >= match_format.min_player:
                         await message.channel.send(
                             f"<@{user.id}> has joined the lobby ({len(match_players) + 1}/{match_format.max_player}), "
-                            f"<@{lobby.creator_id}> can `!confirm`"
+                            f"<@{lobby.creator_id}> can `!start`"
                         )
                     else:
                         await message.channel.send(
