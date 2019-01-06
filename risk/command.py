@@ -5,6 +5,7 @@ except ImportError:
     import toolz
 
 from risk.model.database import *
+from risk.model.match import MatchCreator
 from risk.util import Manager
 
 from datetime import datetime
@@ -17,7 +18,7 @@ Commands:
     !join                 - Join active lobby
     !stats (@Name)        - Stats Player or Self
     !close                - Close active lobby
-    !confirm (@Name)      - Confirm winner
+    !confirm (team)       - Confirm winner
     !where                - Current state, in lobby or in game
     !query [MatchNumber]  - Get information on match
     !leave                - Leave active lobby
@@ -50,6 +51,19 @@ class CommandHelper:
         await message.channel.send(
             f"**Invalid MatchFormat**, use `!create [MatchFormat]`, available MatchFormats: {formats}"
         )
+
+    async def check_game(self, message):
+        match = await self.database.get_or_none(
+            Match.select()
+                 .join(MatchPlayer)
+                 .where((MatchPlayer.player_id == message.author.id) & Match.closed.is_null())
+        )
+        if match:
+            await message.channel.send(
+                f"**Invalid Command**, <@{message.author.id}> is currently in a match [{match.id}],"
+                f" use `!confirm [team]` to reporting winning team"
+            )
+            return True
 
     async def get_active_lobby(self) -> MatchLobby:
         return await self.database.get_or_none(MatchLobby, MatchLobby.closed.is_null())
@@ -101,6 +115,8 @@ class Command(CommandHelper):
                 await message.channel.send("user not found")
 
     async def command_create(self, message: discord.Message):
+        if await self.check_game(message):
+            return
         lobby = await self.get_active_lobby()
         if lobby:
             await message.channel.send(f"<@{lobby.creator_id}> has already created a lobby, type `!join` to queue up")
@@ -146,6 +162,8 @@ class Command(CommandHelper):
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
 
     async def command_join(self, message: discord.Message):
+        if await self.check_game(message):
+            return
         lobby = await self.get_active_lobby()
         if lobby:
             match_format = await self.get_active_lobby_format(lobby)
@@ -176,6 +194,46 @@ class Command(CommandHelper):
                         )
         else:
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
+
+    async def command_start(self, message: discord.Message):
+        lobby = await self.get_active_lobby()
+        user = await self.register_user(message.author)
+        if lobby and lobby.creator_id == user.id:
+            match_format = await self.get_active_lobby_format(lobby)
+            match_players = await self.get_active_lobby_players(lobby)
+            if len(match_players) >= match_format.max_player:
+                tmp = await message.channel.send('Creating game...')
+                with message.channel.typing():
+                    creator = MatchCreator(match_players, match_format)
+                    teams = creator.balance()
+                    async with self.database.atomic():
+                        season = await self.get_season()
+                        match = await self.database.create(
+                            Match, creator=lobby.creator_id, season=season, format=match_format
+                        )
+                        msg = f"**Match [{match.id}]**"
+                        for team in teams:
+                            msg += f"\nTeam [{team.team+1}]: "
+                            for player in team.players:
+                                msg += f"<@{player.id}> "
+                                await self.database.create(
+                                    MatchPlayer,
+                                    match=match, player_id=player.id, team=team.team, mu=player.mu,
+                                    sigma=player.sigma, games=player.games
+                                )
+                        lobby.closed = datetime.utcnow()
+                        await self.database.update(lobby)
+                    await tmp.edit(content=msg)
+            else:
+                await message.channel.send(f"lobby has not minimum player requirement "
+                                           f"({len(match_players)}/{match_format.min_player})")
+        elif lobby.creator_id != user.id:
+            await message.channel.send(f"lobby must be confirmed by @<{lobby.creator_id}>")
+        else:
+            await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
+
+    async def command_confirm(self, message: discord.Message):
+        pass
 
     async def command_leave(self, message: discord.Message):
         lobby = await self.get_active_lobby()

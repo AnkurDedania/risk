@@ -92,7 +92,7 @@ class Match(Model):
 
 
 class MatchPlayer(Model):
-    match_id = ForeignKeyField(Match)
+    match = ForeignKeyField(Match)
     team = IntegerField()
     player = ForeignKeyField(User)
     mu = DoubleField(default=MU)

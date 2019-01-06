@@ -27,7 +27,7 @@ class Team(NamedTuple):
 
 class MatchCreator:
 
-    def __init__(self, scores: List[Score], match_format: MatchFormat):
+    def __init__(self, scores: List[MatchLobbyPlayer], match_format: MatchFormat):
         self.match_format = match_format
         self.players: List[Player] = [Player(p.player_id, p.mu, p.sigma, p.games) for p in scores]
 
@@ -53,7 +53,7 @@ class MatchCreator:
 
         return trueskill.quality(setup)
 
-    def balance(self):
+    def balance(self) -> List[Team]:
         setup = []
         if self.match_format.team_size != 1:
             results = {team_format: self.quality(team_format) for team_format in self.team_formats()}
