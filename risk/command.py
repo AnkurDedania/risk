@@ -45,22 +45,22 @@ class CommandHelper:
     async def get_season(self):
         return (await self.database.get(Setting, key='match.season')).value
 
-    async def send_invalid_match(self, message):
+    async def send_invalid_match_format(self, message):
         results = await self.database.execute(MatchFormat.select(MatchFormat.id))
         formats = ", ".join(f"`{result.id}`" for result in results)
         await message.channel.send(
             f"**Invalid MatchFormat**, use `!create [MatchFormat]`, available MatchFormats: {formats}"
         )
 
-    async def check_game(self, user_id):
+    async def get_active_match(self, user_id):
         return await self.database.get_or_none(
             Match.select()
                  .join(MatchPlayer)
                  .where((MatchPlayer.player_id == user_id) & Match.closed.is_null())
         )
 
-    async def check_game_invalidate(self, message):
-        match = await self.check_game(message.author.id)
+    async def send_invalid_match(self, message):
+        match = await self.get_active_match(message.author.id)
         if match:
             await message.channel.send(
                 f"**Invalid Command**, <@{message.author.id}> is currently in a match [{match.id}],"
@@ -118,7 +118,7 @@ class Command(CommandHelper):
                 await message.channel.send("user not found")
 
     async def command_create(self, message: discord.Message):
-        if await self.check_game_invalidate(message):
+        if await self.send_invalid_match(message):
             return
         lobby = await self.get_active_lobby()
         if lobby:
@@ -139,9 +139,9 @@ class Command(CommandHelper):
                     await message.channel.send(
                         f"<@{message.author}> has created a {match_format} lobby, type `!join` to queue up")
                 else:
-                    await self.send_invalid_match(message)
+                    await self.send_invalid_match_format(message)
             else:
-                await self.send_invalid_match(message)
+                await self.send_invalid_match_format(message)
 
     async def command_close(self, message: discord.Message):
         lobby = await self.get_active_lobby()
@@ -165,7 +165,7 @@ class Command(CommandHelper):
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
 
     async def command_join(self, message: discord.Message):
-        if await self.check_game_invalidate(message):
+        if await self.send_invalid_match(message):
             return
         lobby = await self.get_active_lobby()
         if lobby:
