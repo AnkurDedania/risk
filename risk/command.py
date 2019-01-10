@@ -20,7 +20,7 @@ Commands:
     !close                - Close active lobby
     !confirm (team)       - Confirm winner
     !where                - Current state, in lobby or in game
-    !query [MatchNumber]  - Get information on match
+    !info [MatchNumber]   - Get information on match
     !leave                - Leave active lobby
 Commands (Moderator):
     !close                - Close active lobby
