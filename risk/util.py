@@ -14,7 +14,6 @@ def load_config(file):
 
 def load_db(config):
 
-
     if config['database']['driver'] == 'MySQL':
         driver = peewee.MySQLDatabase
     elif config['database']['driver'] == 'Postgresql':
