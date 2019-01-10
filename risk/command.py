@@ -52,12 +52,15 @@ class CommandHelper:
             f"**Invalid MatchFormat**, use `!create [MatchFormat]`, available MatchFormats: {formats}"
         )
 
-    async def check_game(self, message):
-        match = await self.database.get_or_none(
+    async def check_game(self, user_id):
+        return await self.database.get_or_none(
             Match.select()
                  .join(MatchPlayer)
-                 .where((MatchPlayer.player_id == message.author.id) & Match.closed.is_null())
+                 .where((MatchPlayer.player_id == user_id) & Match.closed.is_null())
         )
+
+    async def check_game_invalidate(self, message):
+        match = await self.check_game(message.author.id)
         if match:
             await message.channel.send(
                 f"**Invalid Command**, <@{message.author.id}> is currently in a match [{match.id}],"
@@ -115,7 +118,7 @@ class Command(CommandHelper):
                 await message.channel.send("user not found")
 
     async def command_create(self, message: discord.Message):
-        if await self.check_game(message):
+        if await self.check_game_invalidate(message):
             return
         lobby = await self.get_active_lobby()
         if lobby:
@@ -162,7 +165,7 @@ class Command(CommandHelper):
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
 
     async def command_join(self, message: discord.Message):
-        if await self.check_game(message):
+        if await self.check_game_invalidate(message):
             return
         lobby = await self.get_active_lobby()
         if lobby:
