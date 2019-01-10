@@ -200,8 +200,7 @@ class Command(CommandHelper):
 
     async def command_start(self, message: discord.Message):
         lobby = await self.get_active_lobby()
-        user = await self.register_user(message.author)
-        if lobby and lobby.creator_id == user.id:
+        if lobby and lobby.creator_id == message.author.id:
             match_format = await self.get_active_lobby_format(lobby)
             match_players = await self.get_active_lobby_players(lobby)
             if len(match_players) >= match_format.max_player:
@@ -230,7 +229,7 @@ class Command(CommandHelper):
             else:
                 await message.channel.send(f"lobby has not minimum player requirement "
                                            f"({len(match_players)}/{match_format.min_player})")
-        elif lobby.creator_id != user.id:
+        elif lobby.creator_id != message.author.id:
             await message.channel.send(f"lobby must be confirmed by @<{lobby.creator_id}>")
         else:
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
