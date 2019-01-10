@@ -22,20 +22,12 @@ class User(Model):
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
 
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
-
 
 class Setting(Model):
     key = CharField(primary_key=True)
     value = CharField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
-
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
 
 
 class MatchFormat(Model):
@@ -46,10 +38,6 @@ class MatchFormat(Model):
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
 
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
-
 
 class MatchLobby(Model):
     creator = ForeignKeyField(User)
@@ -57,10 +45,6 @@ class MatchLobby(Model):
     closed = DateTimeField(null=True)
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
-
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
 
 
 class MatchLobbyPlayer(Model):
@@ -72,10 +56,6 @@ class MatchLobbyPlayer(Model):
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
 
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
-
 
 class Match(Model):
     creator = ForeignKeyField(User)
@@ -85,10 +65,7 @@ class Match(Model):
     closed = DateTimeField(null=True)
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
-
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
+    updated_by = ForeignKeyField(User, null=True)
 
 
 class MatchPlayer(Model):
@@ -100,10 +77,6 @@ class MatchPlayer(Model):
     games = IntegerField()
     created = DateTimeField(default=datetime.datetime.utcnow)
     updated = DateTimeField(default=datetime.datetime.utcnow)
-
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
 
 
 class Score(Model):
@@ -120,7 +93,3 @@ class Score(Model):
     @property
     def games(self):
         return self.win + self.lose
-
-    def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.utcnow()
-        return super().save(*args, **kwargs)
