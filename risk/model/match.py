@@ -70,3 +70,9 @@ class MatchCreator:
                 setup.append(Team(n, [self.players[n]]))
 
         return setup
+
+
+class MatchCalculator:
+    def __init__(self, scores: List[MatchPlayer], winner):
+        self.match_format = match_format
+        self.players: List[Player] = [Player(p.player_id, p.mu, p.sigma, p.games) for p in scores]

@@ -52,14 +52,14 @@ class CommandHelper:
             f"**Invalid MatchFormat**, use `!create [MatchFormat]`, available MatchFormats: {formats}"
         )
 
-    async def get_active_match(self, user_id):
+    async def get_active_match(self, user_id) -> Match:
         return await self.database.get_or_none(
             Match.select()
                  .join(MatchPlayer)
                  .where((MatchPlayer.player_id == user_id) & Match.closed.is_null())
         )
 
-    async def send_invalid_match(self, message):
+    async def send_invalid_match(self, message) -> bool:
         match = await self.get_active_match(message.author.id)
         if match:
             await message.channel.send(
@@ -67,6 +67,7 @@ class CommandHelper:
                 f" use `!confirm [team]` to reporting winning team"
             )
             return True
+        return False
 
     async def get_active_lobby(self) -> MatchLobby:
         return await self.database.get_or_none(MatchLobby, MatchLobby.closed.is_null())
@@ -76,11 +77,20 @@ class CommandHelper:
             lobby = await self.get_active_lobby()
         return await self.database.get(MatchFormat, id=lobby.format_id)
 
+    async def get_active_match_format(self, match: Match) -> MatchFormat:
+        return await self.database.get(MatchFormat, id=match.format_id)
+
     async def get_active_lobby_players(self, lobby: MatchLobby=None) -> List[MatchLobbyPlayer]:
         if not lobby:
             lobby = await self.get_active_lobby()
         results = await self.database.execute(MatchLobbyPlayer.select().where(
             MatchLobbyPlayer.lobby == lobby
+        ))
+        return list(results)
+
+    async def get_active_match_players(self, match: Match) -> List[MatchPlayer]:
+        results = await self.database.execute(MatchPlayer.select().where(
+            MatchPlayer.match == match
         ))
         return list(results)
 
@@ -157,6 +167,7 @@ class Command(CommandHelper):
                         f"<@{lobby.creator_id}> has already created a lobby, can't be closed currently"
                     )
             if lobby.closed:
+                lobby.updated = datetime.utcnow()
                 await self.database.update(lobby)
                 await message.channel.send(
                     f"<@{message.author.id}> closed the lobby"
@@ -185,6 +196,7 @@ class Command(CommandHelper):
                             MatchLobbyPlayer,
                             lobby=lobby, player=user, mu=score.mu, sigma=score.sigma, games=score.games
                         )
+                        lobby.updated = datetime.utcnow()
                         await self.database.update(lobby)
                     if len(match_players) + 1 >= match_format.min_player:
                         await message.channel.send(
@@ -235,7 +247,32 @@ class Command(CommandHelper):
             await message.channel.send(f"no lobby active, use `!create [MatchFormat]`")
 
     async def command_confirm(self, message: discord.Message):
-        pass
+        if message.content:
+            match = await self.get_active_match(message.author.id)
+            if match:
+                match_players = await self.get_active_match_players(match)
+                user = await self.register_user(message.author)
+                if match.content.lower() == "draw":
+                    match.closed = datetime.utcnow()
+                    match.updated = datetime.utcnow()
+                    match.updated_by = user
+                    await self.database.update(match)
+                    await message.channel.send(
+                        f"**Match [{match.id}]** resulted in a draw, closed by <@{message.author.id}>"
+                    )
+                elif message.content.isnumeric() and int(message.content) in map(lambda p: p.team, match_players):
+                    pass
+                else:
+                    await message.channel.send(
+                        f"**Invalid Team**, use `!confirm [team/draw]` to reporting winning team"
+                    )
+
+            else:
+                await message.channel.send(f"<@{message.author.id}> not currently in an active match")
+        else:
+            await message.channel.send(
+                f"**Invalid Command**, use `!confirm [team/draw]` to reporting winning team"
+            )
 
     async def command_leave(self, message: discord.Message):
         lobby = await self.get_active_lobby()
@@ -243,6 +280,7 @@ class Command(CommandHelper):
             user = await self.register_user(message.author)
             if lobby.creator_id == user.id:
                 lobby.closed = datetime.utcnow()
+                lobby.updated = datetime.utcnow()
                 await self.database.update(lobby)
                 await message.channel.send(f"<@{user.id}> closed the lobby")
             else:
